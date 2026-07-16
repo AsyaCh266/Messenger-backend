@@ -20,6 +20,8 @@ import com.example.messenger.message.dto.SendMessage;
 import com.example.messenger.message.dto.EditMessage;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.example.messenger.message.dto.WebSocketMessageRequest;
+import com.example.messenger.message.dto.WebSocketMessageResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -178,5 +180,45 @@ public class MessageServiceImppp implements MessageService{
                                 .createdAt(message.getCreatedAt())
                                 .build())
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public WebSocketMessageResponse sendWebSocketMessage(WebSocketMessageRequest request){
+        String username = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+        User sender = userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Chat chat = chatRepository
+                .findById(request.getChatId())
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        boolean isParticipant = participantRepository
+                        .existsByChatIdAndUserId(request.getChatId(), sender.getId());
+
+        if (!isParticipant){
+            throw new RuntimeException("You are not participant of this chat");
+        }
+
+        Message message = Message.builder()
+                .chat(chat)
+                .sender(sender)
+                .content(request.getContent())
+                .messageType("TEXT")
+                .createdAt(LocalDateTime.now())
+                .deleted(false)
+                .build();
+
+        message = messageRepository.save(message);
+        return WebSocketMessageResponse.builder()
+                .messageId(message.getId())
+                .chatId(chat.getId())
+                .senderId(sender.getId())
+                .senderUsername(sender.getUsername())
+                .content(message.getContent())
+                .createdAt(message.getCreatedAt())
+                .build();
     }
 }
