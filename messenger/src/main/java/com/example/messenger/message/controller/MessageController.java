@@ -7,18 +7,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import com.example.messenger.message.dto.EditMessage;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @RestController
 @RequestMapping("/api/chats")
 @RequiredArgsConstructor
 public class MessageController{
     private final MessageService messageService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/{chatId}/messages")
     public MessageResponse sendMessage(@PathVariable Long chatId, @RequestBody SendMessage request){
-        return messageService.sendMessage(chatId, request);
+        MessageResponse response = messageService.sendMessage(chatId, request);
+        messagingTemplate.convertAndSend("/topic/chat/" + chatId, response);
+        return response;
     }
-
+    
     @GetMapping("/{chatId}/messages")
     public List<MessageResponse> getMessages(@PathVariable Long chatId, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size){
         return messageService.getMessages(chatId, page, size);

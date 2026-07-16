@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+
+<h2>WebSocket Demo</h2>
+<button onclick="connect()">Подключиться</button>
+
+<br><br>
+<input id="chatId" value="2">
+<button onclick="subscribeChat()">Подписаться на чат</button>
+<br><br>
+
+<div id="messages"></div>
+<script>
+    let stompClient = null;
+    function connect(){
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (){
+            alert("Подключено!");
+        });
+    }
+
+    function subscribeChat() {
+        const chatId = document.getElementById("chatId").value;
+        stompClient.subscribe('/topic/chat/' + chatId, function (message){
+                const body = JSON.parse(message.body);
+                const div = document.getElementById("messages");
+                div.innerHTML += "<p><b>" + body.senderUsername + ":</b> " + body.content + "</p>";
+            }
+        );
+    }
+</script>
+</body>
+</html>
